@@ -1,5 +1,9 @@
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv";
-const GOOGLE_API_KEY = "AIzaSyA1AbE3G3s1KmOn38BZ99r8gMDxbkVYCWc";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with your published CSV URL
+
+// API Keys
+const MAPS_JS_API_KEY = "AIzaSyAnlvXPhzOWC7QuAu1yimiguBJ1LV0x4Bw"; // Frontend Key
+const BACKEND_API_KEY = "AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g"; // Backend Key
+
 const originAddress = "221 Corley Mill Rd, Lexington, SC 29072";
 
 async function fetchCSV() {
@@ -25,23 +29,20 @@ function getTodayInMDYYYY() {
 }
 
 async function geocode(address) {
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
-  console.log("Geocoding URL:", url);
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${BACKEND_API_KEY}`;
   const response = await fetch(url);
   const data = await response.json();
-  console.log("Geocode Response:", data);
 
   if (data.status !== "OK") {
-    console.error("Geocoding failed:", data.status);
+    console.error("Geocoding failed:", data.status, data.error_message);
     return null;
   }
-
   return data.results[0]?.geometry.location;
 }
 
 async function getTravelTime(origin, destination) {
   const url = `https://routes.googleapis.com/directions/v2:computeRoutes`;
-  
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -59,22 +60,16 @@ async function getTravelTime(origin, destination) {
 
   const data = await response.json();
   console.log("Routes API response:", data);
-  
+
   if (!data.routes || data.routes.length === 0) {
     console.error("No routes found.");
     return "Unavailable";
   }
 
-  const travelSeconds = parseInt(data.routes[0].duration.slice(0, -1)); // duration in seconds
+  const travelSeconds = parseInt(data.routes[0].duration.slice(0, -1));
   const travelMinutes = Math.ceil(travelSeconds / 60);
 
   return `${travelMinutes} mins`;
-}
-
-
-async function fetchCSV() {
-  const res = await fetch(SHEET_CSV_URL);
-  return res.text();
 }
 
 async function updateDashboard() {
@@ -96,13 +91,7 @@ async function updateDashboard() {
   }
 
   const venueName = todaysEvent["Venue Name"];
-  const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`
-    .replace(/\\bstr\\.?\\b/gi, 'Street')
-    .replace(/\\bave\\.?\\b/gi, 'Avenue')
-    .replace(/\\brd\\.?\\b/gi, 'Road')
-    .replace(/\\bst\\.?\\b/gi, 'Street')
-    .replace(/\\bblvd\\.?\\b/gi, 'Boulevard');
-
+  const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`;
 
   venueEl.textContent = venueName;
 
@@ -125,4 +114,5 @@ async function updateDashboard() {
 }
 
 updateDashboard();
-setInterval(updateDashboard, 300000);  // refresh every 5 min
+setInterval(updateDashboard, 300000);
+
