@@ -1,45 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Event Travel & ETA Dashboard</title>
-  <style>
-    body {
-      background: #E99031;
-      color: #fff;
-      font-family: "Instrument Serif", serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-  }
-
-  h1, h2 {
-    margin: 10px;
-  }
-
-  iframe {
-    border: none;
-    width: 80%;
-    height: 600px;
-    margin-top: 20px;
-  }
-</style>
-<script async defer
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1AbE3G3s1KmOn38BZ99r8gMDxbkVYCWc&libraries=places">
-</script>
-</head>
-<body>
-
-<h1 id="venueName">Loading venue...</h1>
-<h2 id="eta">Calculating ETA...</h2>
-<iframe id="wazeMap"></iframe>
-
-<script>
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with your published CSV URL
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv";
 const GOOGLE_API_KEY = "AIzaSyA1AbE3G3s1KmOn38BZ99r8gMDxbkVYCWc";
 const originAddress = "221 Corley Mill Rd, Lexington, SC 29072";
 
@@ -82,11 +41,16 @@ function getTravelTime(origin, destination) {
         if (status === "OK") {
           resolve(response.routes[0].legs[0].duration.text);
         } else {
-          reject('Could not retrieve directions: ' + status);
+          reject("Could not retrieve directions: " + status);
         }
       }
     );
   });
+}
+
+async function fetchCSV() {
+  const res = await fetch(SHEET_CSV_URL);
+  return res.text();
 }
 
 async function updateDashboard() {
@@ -131,11 +95,4 @@ async function updateDashboard() {
 }
 
 updateDashboard();
-setInterval(updateDashboard, 300000);
-</script>
-
-<iframe id="wazeMap" src=""></iframe>
-
-</body>
-</html>
-
+setInterval(updateDashboard, 300000);  // refresh every 5 min
