@@ -1,38 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Scott Hall Catering Dashboard</title>
-  <style>
-    body {
-      background: #E99031;
-      color: #fff;
-      font-family: "Instrument Serif", serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-      padding: 0;
-      text-align: center;
-    }
-    iframe {
-      width: 90%;
-      height: 500px;
-      border: none;
-      margin-top: 20px;
-    }
-  </style>
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1AbE3G3s1KmOn38BZ99r8gMDxbkVYCWc&libraries=places">
+  <title>Event Travel & ETA Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Load Google Maps API the right way -->
+  <script 
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g&callback=initMap&libraries=places"
+    async defer>
   </script>
 </head>
 <body>
 
 <h1 id="venueName">Loading venue...</h1>
 <h2 id="eta">Loading ETA...</h2>
-<iframe id="wazeMap" src=""></iframe>
+<iframe id="mapFrame" src="" width="100%" height="600px" frameborder="0"></iframe>
 
+<!-- Load the JavaScript file -->
 <script src="travel.js"></script>
 
 </body>
