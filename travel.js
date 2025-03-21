@@ -1,36 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Event Travel & ETA Dashboard</title>
-  <style>
-    body {
-      font-family: "Instrument Serif", serif;
-      margin: 0;
-      padding: 20px;
-      background: #E99031;
-      color: #fff;
-    }
-    h1, h2 { margin-bottom: 10px; }
-    iframe {
-      border: none;
-      width: 100%;
-      height: 600px;
-      margin-top: 20px;
-    }
-  </style>
-  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g&libraries=places"></script>
-</head>
-<body>
-
-<h1 id="venueName">Loading venue name...</h1>
-<h2 id="eta">Loading ETA...</h2>
-
-<iframe id="mapFrame" src=""></iframe>
-
-<script>
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with your actual CSV URL
-const MAPS_JS_API_KEY = "AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g";
-const originAddress = "221 Corley Mill Rd, Lexington, SC 29072";
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with actual CSV URL
+const GOOGLE_API_KEY = "AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g";
+const ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
 
 async function fetchCSV() {
   const response = await fetch(SHEET_CSV_URL);
@@ -54,7 +24,15 @@ function getTodayInMDYYYY() {
   return `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
 }
 
-function getTravelTime(origin, destination) {
+async function geocode(address) {
+  const response = await fetch(
+    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
+  );
+  const data = await response.json();
+  return data.results[0]?.geometry.location;
+}
+
+async function getTravelTime(origin, destination) {
   return new Promise((resolve, reject) => {
     const directionsService = new google.maps.DirectionsService();
     directionsService.route(
@@ -97,17 +75,24 @@ async function updateDashboard() {
 
   venueEl.textContent = venueName;
 
-  const travelTime = await getTravelTime(originAddress, destAddress);
+  const [originCoords, destCoords] = await Promise.all([
+    geocode(ORIGIN_ADDRESS),
+    geocode(destAddress)
+  ]);
+
+  if (!originCoords || !destCoords) {
+    etaEl.textContent = "Address not found";
+    mapEl.src = "";
+    return;
+  }
+
+  const travelTime = await getTravelTime(ORIGIN_ADDRESS, destAddress);
   etaEl.textContent = `Estimated Travel Time: ${travelTime}`;
 
-  const mapsURL = `https://www.google.com/maps/embed/v1/directions?key=${MAPS_JS_API_KEY}&origin=${encodeURIComponent(originAddress)}&destination=${encodeURIComponent(destAddress)}&mode=driving&traffic_model=best_guess`;
-  mapEl.src = mapsURL;
+  const wazeURL = `https://embed.waze.com/iframe?zoom=12&from_lat=${originCoords.lat}&from_lon=${originCoords.lng}&to_lat=${destCoords.lat}&to_lon=${destCoords.lng}&pin=1`;
+  mapEl.src = wazeURL;
 }
 
 updateDashboard();
 setInterval(updateDashboard, 300000);
-</script>
-
-</body>
-</html>
 
