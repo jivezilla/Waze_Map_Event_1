@@ -56,7 +56,7 @@ async function updateDashboard() {
   const rows = parseCSV(csvText);
 
   const todayStr = getTodayInMDYYYY();
-  const todayEvents = rows.filter(row => row["Event Date"] === todayStr);
+ const todayEvents = rows.filter(row => row["Date"] === todayStr);
   const todaysEvent = todayEvents[todayEvents.length - 1]; // Last matching row
 
   const venueEl = document.getElementById("venueName");
