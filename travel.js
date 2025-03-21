@@ -72,7 +72,13 @@ async function updateDashboard() {
   }
 
   const venueName = todaysEvent["Venue Name"];
-  const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`;
+  const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`
+    .replace(/\\bstr\\.?\\b/gi, 'Street')
+    .replace(/\\bave\\.?\\b/gi, 'Avenue')
+    .replace(/\\brd\\.?\\b/gi, 'Road')
+    .replace(/\\bst\\.?\\b/gi, 'Street')
+    .replace(/\\bblvd\\.?\\b/gi, 'Boulevard');
+
 
   venueEl.textContent = venueName;
 
