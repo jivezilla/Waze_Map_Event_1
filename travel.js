@@ -1,18 +1,33 @@
-// travel.js - SHC Travel Dashboard with Live Waze Map & ETA
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Event Travel & ETA Dashboard</title>
+  <style>
+    body { font-family: "Instrument Serif", serif; margin: 0; padding: 20px; background: #E99031; color: #fff; }
+    h1, h2 { margin-bottom: 10px; }
+    iframe { border: none; width: 100%; height: 600px; margin-top: 20px; }
+  </style>
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1AbE3G3s1KmOn38BZ99r8gMDxbkVYCWc">
+  </script>
+</head>
+<body>
 
-// ===== CONFIGURE THESE VARIABLES =====
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with your published CSV URL
-const GOOGLE_API_KEY = "AIzaSyDSjcIsQxjIkd9ReFTxiCcS7_JHhSMQmX"; // Replace with your Google API key
+<h1 id="venueName">Loading venue name...</h1>
+<h2 id="eta">Loading ETA...</h2>
 
+<iframe id="wazeMap" src=""></iframe>
+
+<script>
+const SHEET_CSV_URL = "YOUR_SHEET_CSV_URL"; // Replace with your published CSV URL
+const GOOGLE_API_KEY = "AIzaSyA1AbE3G3s1KmOn38BZ99r8gMDxbkVYCWc";
 const originAddress = "221 Corley Mill Rd, Lexington, SC 29072";
 
-// ===== FETCH CSV FROM GOOGLE SHEET =====
 async function fetchCSV() {
   const response = await fetch(SHEET_CSV_URL);
   return await response.text();
 }
 
-// ===== PARSE CSV INTO OBJECT =====
 function parseCSV(csvText) {
   const lines = csvText.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim());
@@ -25,39 +40,44 @@ function parseCSV(csvText) {
   });
 }
 
-// ===== DATE HELPER FUNCTION (M/D/YYYY format) =====
 function getTodayInMDYYYY() {
   const today = new Date();
   return `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
 }
 
-// ===== GEOCODING ADDRESS TO COORDINATES =====
 async function geocode(address) {
   const response = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
   );
   const data = await response.json();
-  return data.results[0]?.geometry.location; // returns { lat, lng }
+  return data.results[0]?.geometry.location;
 }
 
-// ===== FETCH TRAVEL TIME FROM GOOGLE DIRECTIONS API =====
-async function getTravelTime(origin, destination) {
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&key=${GOOGLE_API_KEY}`
-  );
-  const data = await response.json();
-  const duration = data.routes[0]?.legs[0]?.duration.text;
-  return duration || "Unknown";
+function getTravelTime(origin, destination) {
+  return new Promise((resolve, reject) => {
+    const directionsService = new google.maps.DirectionsService();
+    directionsService.route(
+      {
+        origin,
+        destination,
+        travelMode: "DRIVING",
+      },
+      (response, status) => {
+        if (status === "OK") {
+          resolve(response.routes[0].legs[0].duration.text);
+        } else {
+          reject("Could not retrieve directions: " + status);
+        }
+      }
+    );
 }
 
-// ===== MAIN FUNCTION =====
 async function updateDashboard() {
   const csvText = await fetchCSV();
   const rows = parseCSV(csvText);
-
   const todayStr = getTodayInMDYYYY();
- const todayEvents = rows.filter(row => row["Date"] === todayStr);
-  const todaysEvent = todayEvents[todayEvents.length - 1]; // Last matching row
+  const todayEvents = rows.filter(row => row["Date"] === todayStr);
+  const todaysEvent = todayEvents[todayEvents.length - 1];
 
   const venueEl = document.getElementById("venueName");
   const etaEl = document.getElementById("eta");
@@ -75,10 +95,9 @@ async function updateDashboard() {
 
   venueEl.textContent = venueName;
 
-  const [originCoords, destCoords, travelTime] = await Promise.all([
+  const [originCoords, destCoords] = await Promise.all([
     geocode(originAddress),
-    geocode(destAddress),
-    getTravelTime(originAddress, destAddress)
+    geocode(destAddress)
   ]);
 
   if (!originCoords || !destCoords) {
@@ -87,12 +106,18 @@ async function updateDashboard() {
     return;
   }
 
+  const travelTime = await getTravelTime(originAddress, destAddress);
   etaEl.textContent = `Estimated Travel Time: ${travelTime}`;
 
   const wazeURL = `https://embed.waze.com/iframe?zoom=12&from_lat=${originCoords.lat}&from_lon=${originCoords.lng}&to_lat=${destCoords.lat}&to_lon=${destCoords.lng}&pin=1`;
   mapEl.src = wazeURL;
 }
 
-// ===== INITIALIZE & AUTO REFRESH EVERY 5 MINUTES =====
 updateDashboard();
-setInterval(updateDashboard, 300000); // refresh every 5 mins (300000ms)
+setInterval(updateDashboard, 300000);
+</script>
+
+<iframe id="wazeMap" src=""></iframe>
+
+</body>
+</html>
