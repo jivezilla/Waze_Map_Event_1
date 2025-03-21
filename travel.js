@@ -25,12 +25,20 @@ function getTodayInMDYYYY() {
 }
 
 async function geocode(address) {
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
-  );
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
+  console.log("Geocoding URL:", url);
+  const response = await fetch(url);
   const data = await response.json();
+  console.log("Geocode Response:", data);
+
+  if (data.status !== "OK") {
+    console.error("Geocoding failed:", data.status);
+    return null;
+  }
+
   return data.results[0]?.geometry.location;
 }
+
 
 function getTravelTime(origin, destination) {
   return new Promise((resolve, reject) => {
