@@ -1,7 +1,7 @@
 // travel.js - SHC Travel Dashboard with Live Waze Map & ETA
 
 // ===== CONFIGURE THESE VARIABLES =====
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=cs"; // Replace with your published CSV URL
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with your published CSV URL
 const GOOGLE_API_KEY = "AIzaSyDSjcIsQxjIkd9ReFTxiCcS7_JHhSMQmX"; // Replace with your Google API key
 
 const originAddress = "221 Corley Mill Rd, Lexington, SC 29072";
@@ -96,4 +96,3 @@ async function updateDashboard() {
 // ===== INITIALIZE & AUTO REFRESH EVERY 5 MINUTES =====
 updateDashboard();
 setInterval(updateDashboard, 300000); // refresh every 5 mins (300000ms)
-
