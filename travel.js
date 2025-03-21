@@ -39,22 +39,38 @@ async function geocode(address) {
   return data.results[0]?.geometry.location;
 }
 
-
-function getTravelTime(origin, destination) {
-  return new Promise((resolve, reject) => {
-    const directionsService = new google.maps.DirectionsService();
-    directionsService.route(
-      { origin, destination, travelMode: "DRIVING" },
-      (response, status) => {
-        if (status === "OK") {
-          resolve(response.routes[0].legs[0].duration.text);
-        } else {
-          reject("Could not retrieve directions: " + status);
-        }
-      }
-    );
+async function getTravelTime(origin, destination) {
+  const url = `https://routes.googleapis.com/directions/v2:computeRoutes`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': BACKEND_API_KEY,
+      'X-Goog-FieldMask': 'routes.duration'
+    },
+    body: JSON.stringify({
+      origin: { address: origin },
+      destination: { address: destination },
+      travelMode: 'DRIVE',
+      routingPreference: 'TRAFFIC_AWARE'
+    })
   });
+
+  const data = await response.json();
+  console.log("Routes API response:", data);
+  
+  if (!data.routes || data.routes.length === 0) {
+    console.error("No routes found.");
+    return "Unavailable";
+  }
+
+  const travelSeconds = parseInt(data.routes[0].duration.slice(0, -1)); // duration in seconds
+  const travelMinutes = Math.ceil(travelSeconds / 60);
+
+  return `${travelMinutes} mins`;
 }
+
 
 async function fetchCSV() {
   const res = await fetch(SHEET_CSV_URL);
