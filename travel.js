@@ -51,23 +51,22 @@ async function getTravelTime(origin, destination) {
       return;
     }
 
-    const directionsService = new google.maps.DirectionsService();
-    directionsService.route(
-      {
-        origin,
-        destination,
-        travelMode: "DRIVING",
-      },
-      (response, status) => {
-        if (status === "OK") {
-          resolve(response.routes[0].legs[0].duration.text);
-        } else {
-          reject("Could not retrieve directions: " + status);
-        }
-      }
-    );
-  });
-}
+   const directionsService = new google.maps.DirectionsService();
+directionsService.route(
+  {
+    origin,
+    destination,
+    travelMode: "DRIVING",
+  },
+  (response, status) => {
+    if (status === "OK") {
+      resolve(response.routes[0].legs[0].duration.text);
+    } else {
+      reject("Could not retrieve directions: " + status);
+    }
+  }
+);
+
 
 async function updateDashboard() {
   console.log("Fetching data...");
