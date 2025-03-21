@@ -28,7 +28,7 @@
 <iframe id="mapFrame" src=""></iframe>
 
 <script>
-const SHEET_CSV_URL = "YOUR_SHEET_CSV_URL"; // Replace with your actual CSV URL
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with your actual CSV URL
 const MAPS_JS_API_KEY = "AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g";
 const originAddress = "221 Corley Mill Rd, Lexington, SC 29072";
 
