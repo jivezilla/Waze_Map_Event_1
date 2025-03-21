@@ -1,6 +1,11 @@
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Replace with actual CSV URL
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv"; // Don't forget this again you stupid fucking cunt.
 const GOOGLE_API_KEY = "AIzaSyCWVnQe33Yw8RLLeewe69h48sda62ZTP1g";
 const ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
+
+function initMap() {
+  console.log("Google Maps API Loaded. Initializing...");
+  updateDashboard();  // Only run the script when Maps is ready
+}
 
 async function fetchCSV() {
   const response = await fetch(SHEET_CSV_URL);
@@ -25,15 +30,27 @@ function getTodayInMDYYYY() {
 }
 
 async function geocode(address) {
+  console.log(`Geocoding: ${address}`);
   const response = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`
   );
   const data = await response.json();
+  
+  if (data.status !== "OK") {
+    console.error("Geocoding error:", data.status);
+    return null;
+  }
+
   return data.results[0]?.geometry.location;
 }
 
 async function getTravelTime(origin, destination) {
   return new Promise((resolve, reject) => {
+    if (!google || !google.maps) {
+      reject("Google Maps API not loaded!");
+      return;
+    }
+
     const directionsService = new google.maps.DirectionsService();
     directionsService.route(
       {
@@ -53,6 +70,8 @@ async function getTravelTime(origin, destination) {
 }
 
 async function updateDashboard() {
+  console.log("Fetching data...");
+  
   const csvText = await fetchCSV();
   const rows = parseCSV(csvText);
   const todayStr = getTodayInMDYYYY();
@@ -72,7 +91,7 @@ async function updateDashboard() {
 
   const venueName = todaysEvent["Venue Name"];
   const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`;
-
+  
   venueEl.textContent = venueName;
 
   const [originCoords, destCoords] = await Promise.all([
@@ -93,6 +112,6 @@ async function updateDashboard() {
   mapEl.src = wazeURL;
 }
 
-updateDashboard();
-setInterval(updateDashboard, 300000);
+// Google Maps will automatically call `initMap()` when it's ready
+
 
