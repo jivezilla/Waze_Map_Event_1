@@ -95,6 +95,19 @@ async function updateDashboard() {
 
   venueEl.textContent = venueName;
 
+  const travelTime = await getTravelTime(originAddress, destAddress);
+  etaEl.textContent = `Estimated Travel Time: ${travelTime}`;
+
+  const mapsURL = `https://www.google.com/maps/embed/v1/directions?key=${MAPS_JS_API_KEY}&origin=${encodeURIComponent(originAddress)}&destination=${encodeURIComponent(destAddress)}&mode=driving&traffic_model=best_guess`;
+  mapEl.src = mapsURL;
+}
+
+
+  const venueName = todaysEvent["Venue Name"];
+  const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`;
+
+  venueEl.textContent = venueName;
+
   const [originCoords, destCoords] = await Promise.all([
     geocode(originAddress),
     geocode(destAddress)
