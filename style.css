@@ -7,8 +7,9 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: "Instrument Serif", serif;
   background-color: #c47725;
+  color: #ffffff;
   padding: 20px;
 }
 
@@ -19,12 +20,13 @@ body {
   justify-content: space-between;
   padding-left: 20px;
   padding-right: 20px;
+  background-color: #c47725;
 }
 
-/* Icon styling */
+/* Icon styling: updated to 110x56 pixels */
 .eta-icon {
-  width: 55px;
-  height: 28px;
+  width: 110px;
+  height: 56px;
 }
 
 /* Travel time text styling */
