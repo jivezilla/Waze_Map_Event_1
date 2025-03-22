@@ -1,25 +1,24 @@
-/* style.css */
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ETA container styling */
+.eta-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Icon on left, text on right */
+  padding-left: 30px;
+  padding-right: 30px;
 }
 
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
-  padding: 20px;
+/* Icon styling: set to half the size (55px x 28px) */
+.eta-icon {
+  width: 110px;
+  height: 55px;
 }
 
-h1, h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-iframe {
-  display: block;
-  margin: 0 auto;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+/* Travel time text styling */
+.eta-text {
+  font-size: 40px;
+  font-family: "Instrument Serif", serif; /* Ensure this font is available */
+  color: #ffffff;
+  text-align: right;
+  flex-grow: 1;  /* Ensures the text takes up remaining space */
+  margin-left: 20px;  /* Adds space between the icon and the text */
 }
