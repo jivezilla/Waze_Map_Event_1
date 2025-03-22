@@ -1,6 +1,5 @@
 /* style.css */
 
-/* Basic reset */
 * {
   margin: 0;
   padding: 0;
@@ -11,7 +10,6 @@ body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f4;
   padding: 20px;
-  color: #333;
 }
 
 h1, h2 {
