@@ -6,7 +6,7 @@ var GOOGLE_API_KEY = "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U";
 var ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
 
 /**
- * Attach initMap to window so that Google can call it when the API loads.
+ * Attach initMap to window so Google can call it when the API loads.
  */
 window.initMap = function() {
   console.log("Google Maps API Loaded. Initializing...");
@@ -63,10 +63,30 @@ function geocodeClientSide(address) {
         resolve(results[0].geometry.location);
       } else {
         console.error("Geocoding failed:", status);
-        resolve(null); // Continue gracefully
+        resolve(null); // continue gracefully
       }
     });
   });
+}
+
+/**
+ * Format duration from a raw string (e.g., "165s") into a user-friendly string.
+ * Converts seconds to minutes, or hours and minutes if over 60 minutes.
+ */
+function formatDuration(durationStr) {
+  // Remove trailing 's' if present and parse integer value.
+  var seconds = parseInt(durationStr.replace(/s/i, ""), 10);
+  if (isNaN(seconds)) {
+    return durationStr; // Fallback to original if parsing fails.
+  }
+  if (seconds < 3600) {
+    var minutes = Math.round(seconds / 60);
+    return minutes + " min";
+  } else {
+    var hours = Math.floor(seconds / 3600);
+    var minutes = Math.round((seconds % 3600) / 60);
+    return hours + " hr " + minutes + " min";
+  }
 }
 
 /**
@@ -98,7 +118,7 @@ function getTravelTime(originCoords, destCoords) {
         }
       },
       travelMode: "DRIVE",
-      routingPreference: "TRAFFIC_AWARE_OPTIMAL", // Use TRAFFIC_AWARE_OPTIMAL for a more exhaustive search
+      routingPreference: "TRAFFIC_AWARE",
       computeAlternativeRoutes: false,
       routeModifiers: {
         avoidHighways: false,
@@ -113,7 +133,7 @@ function getTravelTime(originCoords, destCoords) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Request only the route duration in the response.
+        // Request only the route duration field.
         "X-Goog-FieldMask": "routes.duration"
       },
       body: JSON.stringify(requestBody)
@@ -127,9 +147,9 @@ function getTravelTime(originCoords, destCoords) {
       })
       .then(function(data) {
         if (data.routes && data.routes.length > 0) {
-          // Assuming the API returns duration as a string (e.g., "165s")
-          var travelTime = data.routes[0].duration;
-          resolve(travelTime);
+          var rawDuration = data.routes[0].duration; // e.g., "165s"
+          var formatted = formatDuration(rawDuration);
+          resolve(formatted);
         } else {
           reject("No valid route found in response.");
         }
@@ -141,7 +161,7 @@ function getTravelTime(originCoords, destCoords) {
 }
 
 /**
- * Update the dashboard with event info, travel ETA, and an embedded Google Map.
+ * Update the dashboard with event info, travel ETA (as an icon), and an embedded Google Map.
  */
 function updateDashboard() {
   console.log("Fetching data...");
@@ -174,7 +194,7 @@ function updateDashboard() {
                       todaysEvent["Zipcode"];
     venueEl.textContent = venueName;
 
-    // Geocode both the origin and destination addresses (client-side)
+    // Geocode both origin and destination (client-side)
     Promise.all([
       geocodeClientSide(ORIGIN_ADDRESS),
       geocodeClientSide(destAddress)
@@ -191,15 +211,17 @@ function updateDashboard() {
       // Get travel time using the new Routes API
       getTravelTime(originCoords, destCoords)
         .then(function(travelTime) {
-          etaEl.textContent = "Estimated Travel Time: " + travelTime;
-          // Store the ETA for use on another site if needed
+          // Instead of text, show a PNG icon with the travel time as its tooltip.
+          // Replace "path/to/eta-icon.png" with your actual icon's URL.
+          etaEl.innerHTML = '<img src="path/to/eta-icon.png" alt="ETA" title="Travel Time: ' + travelTime + '">';
+          // Also store the ETA if needed.
           localStorage.setItem("eventETA", travelTime);
         })
         .catch(function(error) {
           etaEl.textContent = error;
         });
 
-      // Embed a Google Map with driving directions using the Maps Embed API
+      // Embed a Google Map with driving directions using the Maps Embed API.
       var googleMapsEmbedURL = "https://www.google.com/maps/embed/v1/directions?key=" +
         GOOGLE_API_KEY +
         "&origin=" + encodeURIComponent(ORIGIN_ADDRESS) +
@@ -209,4 +231,3 @@ function updateDashboard() {
     });
   });
 }
-
