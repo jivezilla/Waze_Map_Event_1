@@ -1,92 +1,96 @@
 // travel.js
 
-const SHEET_CSV_URL =
+// Your published CSV URL from Google Sheets
+var SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv";
 
-const GOOGLE_API_KEY = "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U";
-const ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
-
-window.initMap = function() { ... };
+// The origin address
+var ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
 
 /**
- * initMap() is called automatically by the Google Maps JS script (via callback).
+ * We attach initMap to window so the Google script can find it.
  */
-function initMap() {
+window.initMap = function() {
   console.log("Google Maps API Loaded. Initializing...");
   updateDashboard();
-}
+};
 
 /**
- * Fetch CSV data from Google Sheets.
+ * Fetch the CSV from Google Sheets.
  */
-async function fetchCSV() {
-  const response = await fetch(SHEET_CSV_URL);
-  console.log("Fetch finished loading:", response.url);
-  return await response.text();
+function fetchCSV() {
+  return fetch(SHEET_CSV_URL).then(function(response) {
+    console.log("Fetch finished loading:", response.url);
+    return response.text();
+  });
 }
 
 /**
- * Parse CSV text into an array of objects.
+ * Parse the CSV into an array of objects.
  */
 function parseCSV(csvText) {
-  const lines = csvText.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim());
-  return lines.slice(1).map(line => {
-    const values = line.split(",");
-    return headers.reduce((acc, header, index) => {
-      acc[header] = values[index];
-      return acc;
-    }, {});
+  var lines = csvText.trim().split("\n");
+  var headers = lines[0].split(",").map(function(h) {
+    return h.trim();
   });
+
+  var data = [];
+  for (var i = 1; i < lines.length; i++) {
+    var values = lines[i].split(",");
+    var rowObj = {};
+    for (var j = 0; j < headers.length; j++) {
+      rowObj[headers[j]] = values[j];
+    }
+    data.push(rowObj);
+  }
+  return data;
 }
 
 /**
  * Return today's date in M/D/YYYY format.
  */
 function getTodayInMDYYYY() {
-  const today = new Date();
-  return `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+  var today = new Date();
+  return (today.getMonth() + 1) + "/" + today.getDate() + "/" + today.getFullYear();
 }
 
 /**
- * CLIENT-SIDE GEOCODER
- * Uses the Maps JavaScript API's built-in geocoder instead of the web service.
+ * Client-side geocoder using the Maps JavaScript API.
  */
 function geocodeClientSide(address) {
-  return new Promise((resolve, reject) => {
-    console.log(`Geocoding: ${address}`);
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address }, (results, status) => {
+  return new Promise(function(resolve, reject) {
+    console.log("Geocoding: " + address);
+    var geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: address }, function(results, status) {
       if (status === "OK") {
-        // Return the LatLng of the first result
         resolve(results[0].geometry.location);
       } else {
         console.error("Geocoding failed:", status);
-        resolve(null); // or reject(...) if you prefer
+        resolve(null); // or reject if you want to handle errors differently
       }
     });
   });
 }
 
 /**
- * Get travel time from origin to destination using the Maps JavaScript API.
+ * Get travel time from origin to destination using DirectionsService.
  */
-async function getTravelTime(origin, destination) {
-  return new Promise((resolve, reject) => {
+function getTravelTime(origin, destination) {
+  return new Promise(function(resolve, reject) {
     if (!google || !google.maps) {
       reject("Google Maps API not loaded!");
       return;
     }
-    const directionsService = new google.maps.DirectionsService();
+    var directionsService = new google.maps.DirectionsService();
     directionsService.route(
       {
-        origin,
-        destination,
-        travelMode: "DRIVING",
+        origin: origin,
+        destination: destination,
+        travelMode: google.maps.TravelMode.DRIVING
       },
-      (response, status) => {
+      function(response, status) {
         if (status === "OK") {
-          const durationText = response.routes[0].legs[0].duration.text;
+          var durationText = response.routes[0].legs[0].duration.text;
           resolve(durationText);
         } else {
           reject("Could not retrieve directions: " + status);
@@ -97,59 +101,77 @@ async function getTravelTime(origin, destination) {
 }
 
 /**
- * Update the dashboard with event info, travel ETA, and an embedded Google Map.
+ * Main function to update the dashboard.
  */
-async function updateDashboard() {
+function updateDashboard() {
   console.log("Fetching data...");
-  const csvText = await fetchCSV();
-  const rows = parseCSV(csvText);
+  fetchCSV().then(function(csvText) {
+    var rows = parseCSV(csvText);
+    var todayStr = getTodayInMDYYYY();
+    var todayEvents = [];
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i]["Date"] === todayStr) {
+        todayEvents.push(rows[i]);
+      }
+    }
+    var todaysEvent = null;
+    if (todayEvents.length > 0) {
+      todaysEvent = todayEvents[todayEvents.length - 1];
+    }
 
-  const todayStr = getTodayInMDYYYY();
-  const todayEvents = rows.filter(row => row["Date"] === todayStr);
-  const todaysEvent = todayEvents[todayEvents.length - 1];
+    var venueEl = document.getElementById("venueName");
+    var etaEl = document.getElementById("eta");
+    var mapEl = document.getElementById("mapFrame");
 
-  const venueEl = document.getElementById("venueName");
-  const etaEl = document.getElementById("eta");
-  const mapEl = document.getElementById("mapFrame");
+    if (!todaysEvent) {
+      venueEl.textContent = "No event today";
+      etaEl.textContent = "";
+      mapEl.src = "";
+      localStorage.removeItem("eventETA");
+      return;
+    }
 
-  if (!todaysEvent) {
-    venueEl.textContent = "No event today";
-    etaEl.textContent = "";
-    mapEl.src = "";
-    localStorage.removeItem("eventETA");
-    return;
-  }
+    var venueName = todaysEvent["Venue Name"];
+    var destAddress = todaysEvent["Address"] + ", " +
+                      todaysEvent["City"] + ", " +
+                      todaysEvent["State"] + " " +
+                      todaysEvent["Zipcode"];
 
-  const venueName = todaysEvent["Venue Name"];
-  const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`;
-  venueEl.textContent = venueName;
+    venueEl.textContent = venueName;
 
-  // Geocode both origin & destination (client-side approach)
-  const [originCoords, destCoords] = await Promise.all([
-    geocodeClientSide(ORIGIN_ADDRESS),
-    geocodeClientSide(destAddress)
-  ]);
+    // Geocode both origin & destination
+    Promise.all([
+      geocodeClientSide(ORIGIN_ADDRESS),
+      geocodeClientSide(destAddress)
+    ]).then(function(coordsArray) {
+      var originCoords = coordsArray[0];
+      var destCoords = coordsArray[1];
 
-  if (!originCoords || !destCoords) {
-    etaEl.textContent = "Address not found";
-    mapEl.src = "";
-    return;
-  }
+      if (!originCoords || !destCoords) {
+        etaEl.textContent = "Address not found";
+        mapEl.src = "";
+        return;
+      }
 
-  try {
-    // Get the travel time using the DirectionsService
-    const travelTime = await getTravelTime(ORIGIN_ADDRESS, destAddress);
-    etaEl.textContent = `Estimated Travel Time: ${travelTime}`;
+      // Get travel time
+      getTravelTime(ORIGIN_ADDRESS, destAddress)
+        .then(function(travelTime) {
+          etaEl.textContent = "Estimated Travel Time: " + travelTime;
+          // Store the ETA for another site to use
+          localStorage.setItem("eventETA", travelTime);
+        })
+        .catch(function(error) {
+          etaEl.textContent = error;
+        });
 
-    // Store the ETA so your other site can access it
-    localStorage.setItem("eventETA", travelTime);
-  } catch (error) {
-    etaEl.textContent = error;
-  }
+      // Embed a Google Map with driving directions
+      var googleMapsEmbedURL = "https://www.google.com/maps/embed/v1/directions?key=" +
+        "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U" +
+        "&origin=" + encodeURIComponent(ORIGIN_ADDRESS) +
+        "&destination=" + encodeURIComponent(destAddress) +
+        "&mode=driving";
 
-  // Embed a Google Map with driving directions (Maps Embed API)
-  const googleMapsEmbedURL = `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_API_KEY}&origin=${encodeURIComponent(
-    ORIGIN_ADDRESS
-  )}&destination=${encodeURIComponent(destAddress)}&mode=driving`;
-  mapEl.src = googleMapsEmbedURL;
+      mapEl.src = googleMapsEmbedURL;
+    });
+  });
 }
