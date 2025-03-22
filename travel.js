@@ -209,7 +209,7 @@ function updateDashboard() {
         .then(function(travelTime) {
           // Display a PNG icon with the travel time as its tooltip.
           // Replace "path/to/eta-icon.png" with your actual PNG icon URL.
-          etaEl.innerHTML = '<img src="path/to/eta-icon.png" alt="ETA" title="Travel Time: ' + travelTime + '">';
+          etaEl.innerHTML = '<img src="icons/travelTimeIcon.png" alt="ETA" title="Travel Time: ' + travelTime + '">';
           localStorage.setItem("eventETA", travelTime);
         })
         .catch(function(error) {
