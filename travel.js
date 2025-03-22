@@ -1,17 +1,13 @@
 // travel.js
 
-// Google Sheet CSV URL
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv";
 
-// Your Google Maps API key
 const GOOGLE_API_KEY = "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U";
-
-// The address you’re departing from
 const ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
 
 /**
- * initMap() is called automatically when the Google Maps JS script loads
+ * initMap() is called automatically by the Google Maps JS script (via callback).
  */
 function initMap() {
   console.log("Google Maps API Loaded. Initializing...");
@@ -19,19 +15,20 @@ function initMap() {
 }
 
 /**
- * Fetch CSV data from the published Google Sheet
+ * Fetch CSV data from Google Sheets.
  */
 async function fetchCSV() {
   const response = await fetch(SHEET_CSV_URL);
+  console.log("Fetch finished loading:", response.url);
   return await response.text();
 }
 
 /**
- * Parse CSV text into an array of objects
+ * Parse CSV text into an array of objects.
  */
 function parseCSV(csvText) {
   const lines = csvText.trim().split("\n");
-  const headers = lines[0].split(",").map(header => header.trim());
+  const headers = lines[0].split(",").map(h => h.trim());
   return lines.slice(1).map(line => {
     const values = line.split(",");
     return headers.reduce((acc, header, index) => {
@@ -42,7 +39,7 @@ function parseCSV(csvText) {
 }
 
 /**
- * Return today's date in M/D/YYYY format
+ * Return today's date in M/D/YYYY format.
  */
 function getTodayInMDYYYY() {
   const today = new Date();
@@ -50,27 +47,27 @@ function getTodayInMDYYYY() {
 }
 
 /**
- * Geocode an address using Google Maps Geocoding API
+ * CLIENT-SIDE GEOCODER
+ * Uses the Maps JavaScript API's built-in geocoder instead of the web service.
  */
-async function geocode(address) {
-  console.log(`Geocoding: ${address}`);
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
-      address
-    )}&key=${GOOGLE_API_KEY}`
-  );
-  const data = await response.json();
-
-  if (data.status !== "OK") {
-    console.error("Geocoding error:", data.status);
-    return null;
-  }
-  return data.results[0]?.geometry.location;
+function geocodeClientSide(address) {
+  return new Promise((resolve, reject) => {
+    console.log(`Geocoding: ${address}`);
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === "OK") {
+        // Return the LatLng of the first result
+        resolve(results[0].geometry.location);
+      } else {
+        console.error("Geocoding failed:", status);
+        resolve(null); // or reject(...) if you prefer
+      }
+    });
+  });
 }
 
 /**
- * Get travel time from origin to destination using Google Maps Directions API
- * via the client-side Maps JavaScript API
+ * Get travel time from origin to destination using the Maps JavaScript API.
  */
 async function getTravelTime(origin, destination) {
   return new Promise((resolve, reject) => {
@@ -98,12 +95,13 @@ async function getTravelTime(origin, destination) {
 }
 
 /**
- * Update the dashboard with event info, travel ETA, and an embedded Google Map
+ * Update the dashboard with event info, travel ETA, and an embedded Google Map.
  */
 async function updateDashboard() {
   console.log("Fetching data...");
   const csvText = await fetchCSV();
   const rows = parseCSV(csvText);
+
   const todayStr = getTodayInMDYYYY();
   const todayEvents = rows.filter(row => row["Date"] === todayStr);
   const todaysEvent = todayEvents[todayEvents.length - 1];
@@ -112,7 +110,6 @@ async function updateDashboard() {
   const etaEl = document.getElementById("eta");
   const mapEl = document.getElementById("mapFrame");
 
-  // If no event today, clear everything out
   if (!todaysEvent) {
     venueEl.textContent = "No event today";
     etaEl.textContent = "";
@@ -121,16 +118,14 @@ async function updateDashboard() {
     return;
   }
 
-  // Build the address from the CSV row
   const venueName = todaysEvent["Venue Name"];
   const destAddress = `${todaysEvent["Address"]}, ${todaysEvent["City"]}, ${todaysEvent["State"]} ${todaysEvent["Zipcode"]}`;
-
   venueEl.textContent = venueName;
 
-  // Geocode both origin & destination
+  // Geocode both origin & destination (client-side approach)
   const [originCoords, destCoords] = await Promise.all([
-    geocode(ORIGIN_ADDRESS),
-    geocode(destAddress)
+    geocodeClientSide(ORIGIN_ADDRESS),
+    geocodeClientSide(destAddress)
   ]);
 
   if (!originCoords || !destCoords) {
@@ -140,7 +135,7 @@ async function updateDashboard() {
   }
 
   try {
-    // Get the travel time
+    // Get the travel time using the DirectionsService
     const travelTime = await getTravelTime(ORIGIN_ADDRESS, destAddress);
     etaEl.textContent = `Estimated Travel Time: ${travelTime}`;
 
@@ -150,7 +145,7 @@ async function updateDashboard() {
     etaEl.textContent = error;
   }
 
-  // Embed a Google Map with driving directions
+  // Embed a Google Map with driving directions (Maps Embed API)
   const googleMapsEmbedURL = `https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_API_KEY}&origin=${encodeURIComponent(
     ORIGIN_ADDRESS
   )}&destination=${encodeURIComponent(destAddress)}&mode=driving`;
