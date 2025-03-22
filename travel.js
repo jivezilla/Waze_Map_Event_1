@@ -1,14 +1,12 @@
 // travel.js
 
-// Your published CSV URL from Google Sheets
 var SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSOJpWzhoSZ2zgH1l9DcW3gc4RsbTsRqsSCTpGuHcOAfESVohlucF8QaJ6u58wQE0UilF7ChQXhbckE/pub?output=csv";
-
-// The origin address
+var GOOGLE_API_KEY = "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U";
 var ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
 
 /**
- * We attach initMap to window so the Google script can find it.
+ * Attach initMap to window so that Google can call it when the API loads.
  */
 window.initMap = function() {
   console.log("Google Maps API Loaded. Initializing...");
@@ -16,7 +14,7 @@ window.initMap = function() {
 };
 
 /**
- * Fetch the CSV from Google Sheets.
+ * Fetch CSV data from your Google Sheet.
  */
 function fetchCSV() {
   return fetch(SHEET_CSV_URL).then(function(response) {
@@ -26,14 +24,13 @@ function fetchCSV() {
 }
 
 /**
- * Parse the CSV into an array of objects.
+ * Parse CSV text into an array of objects.
  */
 function parseCSV(csvText) {
   var lines = csvText.trim().split("\n");
   var headers = lines[0].split(",").map(function(h) {
     return h.trim();
   });
-
   var data = [];
   for (var i = 1; i < lines.length; i++) {
     var values = lines[i].split(",");
@@ -66,53 +63,85 @@ function geocodeClientSide(address) {
         resolve(results[0].geometry.location);
       } else {
         console.error("Geocoding failed:", status);
-        resolve(null); // or reject if you want to handle errors differently
+        resolve(null); // Continue gracefully
       }
     });
   });
 }
 
 /**
- * Get travel time from origin to destination using DirectionsService.
+ * Get travel time from origin to destination using the new Routes API.
+ * This makes a POST request to https://routes.googleapis.com/directions/v2:computeRoutes.
  */
-/**
- * Get travel time from origin to destination using DistanceMatrixService.
- * This is an alternative to DirectionsService if you just want the travel time.
- */
-function getTravelTime(origin, destination) {
+function getTravelTime(originCoords, destCoords) {
   return new Promise(function(resolve, reject) {
-    if (!google || !google.maps) {
-      reject("Google Maps API not loaded!");
+    if (!originCoords || !destCoords) {
+      reject("Invalid coordinates");
       return;
     }
-    var distanceService = new google.maps.DistanceMatrixService();
-    distanceService.getDistanceMatrix(
-      {
-        origins: [origin],        // array of 1 address or LatLng
-        destinations: [destination],
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      function(response, status) {
-        if (status === "OK") {
-          // Grab the first (and only) element
-          var element = response.rows[0].elements[0];
-          if (element.status === "OK") {
-            var durationText = element.duration.text;
-            resolve(durationText);
-          } else {
-            reject("Could not retrieve travel time: " + element.status);
+    var url = "https://routes.googleapis.com/directions/v2:computeRoutes?key=" + GOOGLE_API_KEY;
+    var requestBody = {
+      origin: {
+        location: {
+          latLng: {
+            latitude: originCoords.lat(),
+            longitude: originCoords.lng()
           }
-        } else {
-          reject("DistanceMatrix request failed: " + status);
         }
-      }
-    );
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: destCoords.lat(),
+            longitude: destCoords.lng()
+          }
+        }
+      },
+      travelMode: "DRIVE",
+      routingPreference: "TRAFFIC_AWARE_OPTIMAL", // Use TRAFFIC_AWARE_OPTIMAL for a more exhaustive search
+      computeAlternativeRoutes: false,
+      routeModifiers: {
+        avoidHighways: false,
+        avoidTolls: false,
+        avoidFerries: false
+      },
+      languageCode: "en-US",
+      units: "IMPERIAL"
+    };
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Request only the route duration in the response.
+        "X-Goog-FieldMask": "routes.duration"
+      },
+      body: JSON.stringify(requestBody)
+    })
+      .then(function(response) {
+        if (!response.ok) {
+          reject("Routes API request failed with status " + response.status);
+          return;
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.routes && data.routes.length > 0) {
+          // Assuming the API returns duration as a string (e.g., "165s")
+          var travelTime = data.routes[0].duration;
+          resolve(travelTime);
+        } else {
+          reject("No valid route found in response.");
+        }
+      })
+      .catch(function(err) {
+        reject("Routes API error: " + err);
+      });
   });
 }
 
-
 /**
- * Main function to update the dashboard.
+ * Update the dashboard with event info, travel ETA, and an embedded Google Map.
  */
 function updateDashboard() {
   console.log("Fetching data...");
@@ -125,11 +154,7 @@ function updateDashboard() {
         todayEvents.push(rows[i]);
       }
     }
-    var todaysEvent = null;
-    if (todayEvents.length > 0) {
-      todaysEvent = todayEvents[todayEvents.length - 1];
-    }
-
+    var todaysEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
     var venueEl = document.getElementById("venueName");
     var etaEl = document.getElementById("eta");
     var mapEl = document.getElementById("mapFrame");
@@ -147,10 +172,9 @@ function updateDashboard() {
                       todaysEvent["City"] + ", " +
                       todaysEvent["State"] + " " +
                       todaysEvent["Zipcode"];
-
     venueEl.textContent = venueName;
 
-    // Geocode both origin & destination
+    // Geocode both the origin and destination addresses (client-side)
     Promise.all([
       geocodeClientSide(ORIGIN_ADDRESS),
       geocodeClientSide(destAddress)
@@ -164,25 +188,25 @@ function updateDashboard() {
         return;
       }
 
-      // Get travel time
-      getTravelTime(ORIGIN_ADDRESS, destAddress)
+      // Get travel time using the new Routes API
+      getTravelTime(originCoords, destCoords)
         .then(function(travelTime) {
           etaEl.textContent = "Estimated Travel Time: " + travelTime;
-          // Store the ETA for another site to use
+          // Store the ETA for use on another site if needed
           localStorage.setItem("eventETA", travelTime);
         })
         .catch(function(error) {
           etaEl.textContent = error;
         });
 
-      // Embed a Google Map with driving directions
+      // Embed a Google Map with driving directions using the Maps Embed API
       var googleMapsEmbedURL = "https://www.google.com/maps/embed/v1/directions?key=" +
-        "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U" +
+        GOOGLE_API_KEY +
         "&origin=" + encodeURIComponent(ORIGIN_ADDRESS) +
         "&destination=" + encodeURIComponent(destAddress) +
         "&mode=driving";
-
       mapEl.src = googleMapsEmbedURL;
     });
   });
 }
+
