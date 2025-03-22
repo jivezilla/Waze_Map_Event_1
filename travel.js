@@ -75,30 +75,41 @@ function geocodeClientSide(address) {
 /**
  * Get travel time from origin to destination using DirectionsService.
  */
+/**
+ * Get travel time from origin to destination using DistanceMatrixService.
+ * This is an alternative to DirectionsService if you just want the travel time.
+ */
 function getTravelTime(origin, destination) {
   return new Promise(function(resolve, reject) {
     if (!google || !google.maps) {
       reject("Google Maps API not loaded!");
       return;
     }
-    var directionsService = new google.maps.DirectionsService();
-    directionsService.route(
+    var distanceService = new google.maps.DistanceMatrixService();
+    distanceService.getDistanceMatrix(
       {
-        origin: origin,
-        destination: destination,
-        travelMode: google.maps.TravelMode.DRIVING
+        origins: [origin],        // array of 1 address or LatLng
+        destinations: [destination],
+        travelMode: google.maps.TravelMode.DRIVING,
       },
       function(response, status) {
         if (status === "OK") {
-          var durationText = response.routes[0].legs[0].duration.text;
-          resolve(durationText);
+          // Grab the first (and only) element
+          var element = response.rows[0].elements[0];
+          if (element.status === "OK") {
+            var durationText = element.duration.text;
+            resolve(durationText);
+          } else {
+            reject("Could not retrieve travel time: " + element.status);
+          }
         } else {
-          reject("Could not retrieve directions: " + status);
+          reject("DistanceMatrix request failed: " + status);
         }
       }
     );
   });
 }
+
 
 /**
  * Main function to update the dashboard.
