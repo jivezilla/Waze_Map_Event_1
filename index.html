@@ -6,20 +6,25 @@
   <title>Event Travel & ETA Dashboard</title>
   <link rel="stylesheet" href="style.css" />
 
+  <!-- 
+    Load the Maps JavaScript API with callback=initMap 
+    Make sure you have:
+      - Maps JavaScript API enabled
+      - Maps Embed API enabled (for the iframe)
+      - Key restricted to https://jivezilla.github.io/*
+  -->
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U&callback=initMap"
+    async
+    defer
+  ></script>
 </head>
 <body>
   <h1 id="venueName">Loading venue...</h1>
   <h2 id="eta">Loading ETA...</h2>
   <iframe id="mapFrame" src="" width="100%" height="600px" frameborder="0"></iframe>
 
-<!-- travel.js first, so the function is declared -->
-<script src="travel.js"></script>
-
-<!-- Then the Google Maps script with callback=initMap -->
-<script 
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U&callback=initMap"
-  async
-  defer
-></script>
+  <!-- travel.js must be loaded before or after, but initMap must exist in global scope -->
+  <script src="travel.js"></script>
 </body>
 </html>
