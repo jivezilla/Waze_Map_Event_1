@@ -74,10 +74,9 @@ function geocodeClientSide(address) {
  * Converts seconds to minutes, or hours and minutes if over 60 minutes.
  */
 function formatDuration(durationStr) {
-  // Remove trailing 's' if present and parse integer value.
   var seconds = parseInt(durationStr.replace(/s/i, ""), 10);
   if (isNaN(seconds)) {
-    return durationStr; // Fallback to original if parsing fails.
+    return durationStr;
   }
   if (seconds < 3600) {
     var minutes = Math.round(seconds / 60);
@@ -161,7 +160,8 @@ function getTravelTime(originCoords, destCoords) {
 }
 
 /**
- * Update the dashboard with travel ETA (displayed as a PNG icon) and an embedded Google Map.
+ * Update the dashboard with travel ETA (displayed as an icon and text)
+ * and an embedded Google Map.
  */
 function updateDashboard() {
   console.log("Fetching data...");
@@ -185,10 +185,11 @@ function updateDashboard() {
       return;
     }
 
-    var destAddress = todaysEvent["Address"] + ", " +
-                      todaysEvent["City"] + ", " +
-                      todaysEvent["State"] + " " +
-                      todaysEvent["Zipcode"];
+    var destAddress =
+      todaysEvent["Address"] + ", " +
+      todaysEvent["City"] + ", " +
+      todaysEvent["State"] + " " +
+      todaysEvent["Zipcode"];
 
     // Geocode both origin and destination (client-side)
     Promise.all([
@@ -207,9 +208,12 @@ function updateDashboard() {
       // Get travel time using the new Routes API
       getTravelTime(originCoords, destCoords)
         .then(function(travelTime) {
-          // Display a PNG icon with the travel time as its tooltip.
-          // Replace "path/to/eta-icon.png" with your actual PNG icon URL.
-          etaEl.innerHTML = '<img src="icons/travelTimeIcon.png" alt="ETA" title="Travel Time: ' + travelTime + '">';
+          // Create an ETA container with the icon on the left and travel time text on the right.
+          // Replace "path/to/eta-icon.png" with your actual PNG icon path.
+          etaEl.innerHTML = '<div class="eta-container">' +
+                            '<img src="path/to/eta-icon.png" class="eta-icon" alt="ETA Icon">' +
+                            '<span class="eta-text">' + travelTime + '</span>' +
+                            '</div>';
           localStorage.setItem("eventETA", travelTime);
         })
         .catch(function(error) {
@@ -218,10 +222,10 @@ function updateDashboard() {
 
       // Embed a Google Map with driving directions using the Maps Embed API.
       var googleMapsEmbedURL = "https://www.google.com/maps/embed/v1/directions?key=" +
-        GOOGLE_API_KEY +
-        "&origin=" + encodeURIComponent(ORIGIN_ADDRESS) +
-        "&destination=" + encodeURIComponent(destAddress) +
-        "&mode=driving";
+                               GOOGLE_API_KEY +
+                               "&origin=" + encodeURIComponent(ORIGIN_ADDRESS) +
+                               "&destination=" + encodeURIComponent(destAddress) +
+                               "&mode=driving";
       mapEl.src = googleMapsEmbedURL;
     });
   });
