@@ -6,6 +6,8 @@ const SHEET_CSV_URL =
 const GOOGLE_API_KEY = "AIzaSyB4b4Ho4rNwF9hyPKCYFYXNU6dXI550M6U";
 const ORIGIN_ADDRESS = "221 Corley Mill Rd, Lexington, SC 29072";
 
+window.initMap = function() { ... };
+
 /**
  * initMap() is called automatically by the Google Maps JS script (via callback).
  */
