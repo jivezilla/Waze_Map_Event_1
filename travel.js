@@ -63,7 +63,7 @@ function geocodeClientSide(address) {
         resolve(results[0].geometry.location);
       } else {
         console.error("Geocoding failed:", status);
-        resolve(null); // continue gracefully
+        resolve(null); // Continue gracefully
       }
     });
   });
@@ -161,7 +161,7 @@ function getTravelTime(originCoords, destCoords) {
 }
 
 /**
- * Update the dashboard with event info, travel ETA (as an icon), and an embedded Google Map.
+ * Update the dashboard with travel ETA (displayed as a PNG icon) and an embedded Google Map.
  */
 function updateDashboard() {
   console.log("Fetching data...");
@@ -175,24 +175,20 @@ function updateDashboard() {
       }
     }
     var todaysEvent = todayEvents.length > 0 ? todayEvents[todayEvents.length - 1] : null;
-    var venueEl = document.getElementById("venueName");
     var etaEl = document.getElementById("eta");
     var mapEl = document.getElementById("mapFrame");
 
     if (!todaysEvent) {
-      venueEl.textContent = "No event today";
-      etaEl.textContent = "";
+      etaEl.textContent = "No event today";
       mapEl.src = "";
       localStorage.removeItem("eventETA");
       return;
     }
 
-    var venueName = todaysEvent["Venue Name"];
     var destAddress = todaysEvent["Address"] + ", " +
                       todaysEvent["City"] + ", " +
                       todaysEvent["State"] + " " +
                       todaysEvent["Zipcode"];
-    venueEl.textContent = venueName;
 
     // Geocode both origin and destination (client-side)
     Promise.all([
@@ -211,10 +207,9 @@ function updateDashboard() {
       // Get travel time using the new Routes API
       getTravelTime(originCoords, destCoords)
         .then(function(travelTime) {
-          // Instead of text, show a PNG icon with the travel time as its tooltip.
-          // Replace "path/to/eta-icon.png" with your actual icon's URL.
+          // Display a PNG icon with the travel time as its tooltip.
+          // Replace "path/to/eta-icon.png" with your actual PNG icon URL.
           etaEl.innerHTML = '<img src="path/to/eta-icon.png" alt="ETA" title="Travel Time: ' + travelTime + '">';
-          // Also store the ETA if needed.
           localStorage.setItem("eventETA", travelTime);
         })
         .catch(function(error) {
